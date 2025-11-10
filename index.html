@@ -174,12 +174,12 @@
         
         <div id="input-area">
             <p style="color: #7f8c8d; font-size: 0.9em; margin: 0 0 10px 0;">
-                📝 <strong>사용 방법:</strong> 한 줄에 하나씩 <code>한국어 || 영어</code> 형식으로 입력하세요.
+                📝 <strong>사용 방법:</strong> 한 줄에 하나씩 <code>한국어 || 영어</code> 형식으로 입력하세요. 목록 문장을 **탭**하면 **수정 모드**로 전환됩니다.
             </p>
             <textarea id="bulk-input" placeholder="예시:&#10;안녕하세요 || Hello&#10;감사합니다 || Thank you&#10;좋은 하루 되세요 || Have a nice day" 
                       rows="5" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: Arial, sans-serif; resize: vertical;"></textarea>
             <div id="input-buttons">
-                <button id="add-sentence-btn" class="action-btn">문장 추가</button>
+                <button id="add-sentence-btn" class="action-btn">문장 추가/수정 완료</button>
             </div>
         </div>
 
@@ -247,7 +247,6 @@
             function renderSentences() {
                 sentenceList.innerHTML = ''; 
                 selectedSentenceId = null;
-                bulkInput.value = '';
 
                 sentences.forEach((s, index) => {
                     const listItem = document.createElement('li');
@@ -256,7 +255,10 @@
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.checked = s.memorized;
-                    checkbox.addEventListener('change', () => toggleMemorized(s.id));
+                    checkbox.addEventListener('change', (e) => {
+                        e.stopPropagation(); // 탭 이벤트와 충돌 방지
+                        toggleMemorized(s.id);
+                    });
 
                     const textSpan = document.createElement('span');
                     textSpan.innerHTML = `${index + 1}. ${s.text} <span class="korean-text">(${s.korean})</span>`;
@@ -268,12 +270,21 @@
                         listItem.classList.add('memorized'); 
                     }
 
-                    textSpan.addEventListener('click', () => {
-                        if (confirm(`"${s.korean}"를 삭제하시겠습니까?`)) {
-                            sentences = sentences.filter(sent => sent.id !== s.id);
-                            saveSentences();
-                            renderSentences();
-                        }
+                    // 문장 탭 시 수정 모드 (입력창으로 로드)
+                    textSpan.addEventListener('click', (e) => {
+                        e.stopPropagation(); 
+                        
+                        // 해당 문장을 입력창에 로드: "한국어 || 영어"
+                        const newText = `${s.korean} || ${s.text}`;
+                        bulkInput.value = newText;
+                        bulkInput.focus();
+                        
+                        // 기존 문장 목록에서 제거 (수정 후 다시 추가하기 위함)
+                        sentences = sentences.filter(sent => sent.id !== s.id);
+                        saveSentences();
+                        renderSentences(); // 목록 업데이트
+                        
+                        alert(`"${s.korean} || ${s.text}" 문장이 수정 대기 상태로 로드되었습니다. 내용을 수정 후 '문장 추가/수정 완료' 버튼을 눌러주세요.`);
                     });
 
                     sentenceList.appendChild(listItem);
@@ -321,7 +332,7 @@
                     bulkInput.value = '';
                     saveSentences();
                     renderSentences();
-                    alert(`${addedCount}개의 문장이 추가되었습니다.`);
+                    alert(`${addedCount}개의 문장이 추가/수정되었습니다.`);
                 } else {
                     alert("올바른 형식으로 입력해주세요.\n예시: 한국어 || 영어");
                 }
@@ -336,6 +347,7 @@
                 }
             }
 
+            // 선택 삭제 버튼은 체크박스로만 작동
             deleteSentenceBtn.addEventListener('click', () => {
                 const sentencesToDelete = Array.from(sentenceList.querySelectorAll('input[type="checkbox"]:checked'))
                     .map(checkbox => parseInt(checkbox.closest('li').dataset.id));
@@ -402,9 +414,12 @@
 
             clearAllBtn.addEventListener('click', () => {
                 if (confirm("모든 문장의 암기 상태를 초기화하시겠습니까?")) {
-                    sentences = sentences.map(s => ({ ...s, memorized: false }));
+                    sentences.forEach(s => {
+                        s.memorized = false;
+                    });
                     saveSentences();
                     renderSentences();
+                    alert("모든 문장의 암기 상태가 초기화되었습니다!");
                 }
             });
 
