@@ -10,26 +10,24 @@
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
-            padding: 10px; /* 모바일에서 여백 확보 */
+            padding: 10px;
         }
 
         #app-container, #practice-container {
             max-width: 650px;
-            width: 100%; /* 모바일에서 100% 너비 사용 */
+            width: 100%;
             margin: 0 auto;
             background: #fff;
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box; /* 패딩이 너비에 포함되도록 설정 */
+            box-sizing: border-box;
         }
 
-        /* --- 관리 화면 스타일 --- */
         #practice-container {
             display: none; 
         }
 
-        /* 제목 변경 */
         h1 {
             font-size: 1.8em;
             color: #34495e;
@@ -46,14 +44,6 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        
-        #input-area input {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 100%; /* input 너비 조정 */
-            box-sizing: border-box;
-        }
 
         #input-buttons {
             display: flex;
@@ -61,15 +51,9 @@
             justify-content: flex-end;
         }
 
-        /* 문장 추가 버튼 강조 */
         #add-sentence-btn {
             background-color: #2ecc71; 
             color: white;
-            flex-grow: 1; /* 작은 화면에서 버튼 너비 확보 */
-        }
-        
-        #edit-sentence-btn {
-            display: none;
             flex-grow: 1;
         }
 
@@ -80,7 +64,6 @@
             border-radius: 4px;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            /* 모바일에서 버튼이 줄바꿈되지 않도록 flex-wrap 제거 */
         }
 
         .action-btn {
@@ -89,11 +72,11 @@
             border: none;
             cursor: pointer;
             font-weight: bold;
-            flex: 1 1 0; /* 작은 화면에서 균등 분할 */
-            min-width: 0; /* flex 버그 방지 */
+            flex: 1 1 0;
+            min-width: 0;
             margin: 0;
             border-radius: 0; 
-            font-size: 0.9em; /* 모바일에서 글자 크기 조정 */
+            font-size: 0.9em;
         }
 
         .action-btn.delete { background-color: #e74c3c; }
@@ -116,7 +99,7 @@
         #sentence-list li span {
             flex-grow: 1;
             padding: 0 10px;
-            word-break: break-word; /* 긴 문장 모바일에서 줄바꿈 */
+            word-break: break-word;
         }
         
         #sentence-list li .korean-text {
@@ -124,7 +107,7 @@
             font-style: italic;
             margin-left: 10px;
             font-size: 0.9em; 
-            display: block; /* 한글 뜻은 새 줄에서 시작하도록 조정 */
+            display: block;
         }
 
         #sentence-list li.memorized span {
@@ -134,7 +117,6 @@
             text-decoration-color: #27ae60;
         }
 
-        /* --- 학습 화면 스타일 --- */
         #practice-box {
             min-height: 200px;
             display: flex;
@@ -183,7 +165,6 @@
             background-color: #3498db;
             color: white;
         }
-        /* --- 🎨 스타일링 (CSS) 끝 --- */
     </style>
 </head>
 <body>
@@ -192,11 +173,13 @@
         <h1>SJ 영어문장 암기 프로그램</h1> 
         
         <div id="input-area">
-            <input type="text" id="korean-input" placeholder="여기에 한글 뜻을 입력하세요." required>
-            <input type="text" id="english-input" placeholder="여기에 영어 문장을 입력하세요." required>
+            <p style="color: #7f8c8d; font-size: 0.9em; margin: 0 0 10px 0;">
+                📝 <strong>사용 방법:</strong> 한 줄에 하나씩 <code>한국어 || 영어</code> 형식으로 입력하세요.
+            </p>
+            <textarea id="bulk-input" placeholder="예시:&#10;안녕하세요 || Hello&#10;감사합니다 || Thank you&#10;좋은 하루 되세요 || Have a nice day" 
+                      rows="5" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: Arial, sans-serif; resize: vertical;"></textarea>
             <div id="input-buttons">
                 <button id="add-sentence-btn" class="action-btn">문장 추가</button>
-                <button id="edit-sentence-btn" class="action-btn">수정 완료</button>
             </div>
         </div>
 
@@ -208,8 +191,7 @@
 
         <div id="sentence-list-container">
             <p id="total-sentences">총 문장 수: 0</p>
-            <ul id="sentence-list">
-                </ul>
+            <ul id="sentence-list"></ul>
         </div>
     </div>
 
@@ -229,15 +211,11 @@
     </div>
 
     <script>
-        /* --- ⚙️ 기능 로직 (JavaScript) 시작 --- */
         document.addEventListener('DOMContentLoaded', () => {
-            // DOM 요소
             const appContainer = document.getElementById('app-container');
             const practiceContainer = document.getElementById('practice-container');
-            const koreanInput = document.getElementById('korean-input');
-            const englishInput = document.getElementById('english-input');
+            const bulkInput = document.getElementById('bulk-input');
             const addSentenceBtn = document.getElementById('add-sentence-btn');
-            const editSentenceBtn = document.getElementById('edit-sentence-btn');
             const deleteSentenceBtn = document.getElementById('delete-sentence-btn');
             const practiceSentenceBtn = document.getElementById('practice-sentence-btn');
             const clearAllBtn = document.getElementById('clear-all-btn');
@@ -253,7 +231,6 @@
             let selectedSentenceId = null; 
             let currentPracticeSentence = null;
 
-            // 데이터 저장 및 불러오기 (Local Storage 연동)
             function saveSentences() {
                 localStorage.setItem('englishSentences', JSON.stringify(sentences));
                 updateTotalCount();
@@ -267,14 +244,10 @@
                 renderSentences();
             }
 
-            // 문장 목록 렌더링
             function renderSentences() {
                 sentenceList.innerHTML = ''; 
                 selectedSentenceId = null;
-                editSentenceBtn.style.display = 'none';
-                addSentenceBtn.style.display = 'inline-block';
-                koreanInput.value = '';
-                englishInput.value = '';
+                bulkInput.value = '';
 
                 sentences.forEach((s, index) => {
                     const listItem = document.createElement('li');
@@ -286,7 +259,6 @@
                     checkbox.addEventListener('change', () => toggleMemorized(s.id));
 
                     const textSpan = document.createElement('span');
-                    // 번호, 영어 문장, 한글 뜻을 표시
                     textSpan.innerHTML = `${index + 1}. ${s.text} <span class="korean-text">(${s.korean})</span>`;
 
                     listItem.appendChild(checkbox);
@@ -296,8 +268,13 @@
                         listItem.classList.add('memorized'); 
                     }
 
-                    // 문장 클릭 시 수정 모드로 전환
-                    textSpan.addEventListener('click', () => startEdit(s.id, s.korean, s.text));
+                    textSpan.addEventListener('click', () => {
+                        if (confirm(`"${s.korean}"를 삭제하시겠습니까?`)) {
+                            sentences = sentences.filter(sent => sent.id !== s.id);
+                            saveSentences();
+                            renderSentences();
+                        }
+                    });
 
                     sentenceList.appendChild(listItem);
                 });
@@ -308,28 +285,48 @@
                 totalSentences.textContent = `총 문장 수: ${sentences.length}`;
             }
 
-            // 문장 추가
             addSentenceBtn.addEventListener('click', () => {
-                const korean = koreanInput.value.trim();
-                const english = englishInput.value.trim();
-                if (korean && english) {
-                    const newSentence = {
-                        id: Date.now(), 
-                        korean: korean,
-                        text: english, // 영어 문장
-                        memorized: false
-                    };
-                    sentences.push(newSentence);
-                    koreanInput.value = '';
-                    englishInput.value = '';
+                const inputText = bulkInput.value.trim();
+                if (!inputText) {
+                    alert("문장을 입력해주세요.");
+                    return;
+                }
+
+                const lines = inputText.split('\n');
+                let addedCount = 0;
+
+                lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return;
+
+                    const parts = trimmedLine.split('||');
+                    if (parts.length === 2) {
+                        const korean = parts[0].trim();
+                        const english = parts[1].trim();
+
+                        if (korean && english) {
+                            const newSentence = {
+                                id: Date.now() + addedCount,
+                                korean: korean,
+                                text: english,
+                                memorized: false
+                            };
+                            sentences.push(newSentence);
+                            addedCount++;
+                        }
+                    }
+                });
+
+                if (addedCount > 0) {
+                    bulkInput.value = '';
                     saveSentences();
                     renderSentences();
+                    alert(`${addedCount}개의 문장이 추가되었습니다.`);
                 } else {
-                    alert("한글 뜻과 영어 문장을 모두 입력해주세요.");
+                    alert("올바른 형식으로 입력해주세요.\n예시: 한국어 || 영어");
                 }
             });
 
-            // 문장 암기 상태 토글
             function toggleMemorized(id) {
                 const index = sentences.findIndex(s => s.id === id);
                 if (index !== -1) {
@@ -339,45 +336,6 @@
                 }
             }
 
-            // 문장 수정 시작
-            function startEdit(id, korean, english) {
-                document.querySelectorAll('#sentence-list li').forEach(li => li.classList.remove('selected-for-edit'));
-
-                selectedSentenceId = id;
-                koreanInput.value = korean;
-                englishInput.value = english;
-                addSentenceBtn.style.display = 'none';
-                editSentenceBtn.style.display = 'inline-block';
-                
-                document.querySelector(`li[data-id="${id}"]`).classList.add('selected-for-edit');
-                koreanInput.focus();
-            }
-
-            // 문장 수정 완료
-            editSentenceBtn.addEventListener('click', () => {
-                const newKorean = koreanInput.value.trim();
-                const newEnglish = englishInput.value.trim();
-                
-                if (selectedSentenceId !== null && newKorean && newEnglish) {
-                    const index = sentences.findIndex(s => s.id === selectedSentenceId);
-                    if (index !== -1) {
-                        sentences[index].korean = newKorean;
-                        sentences[index].text = newEnglish;
-                        saveSentences();
-                        renderSentences();
-                    }
-                } else {
-                    alert("수정할 내용을 모두 입력해주세요.");
-                }
-
-                // 수정 모드 종료
-                selectedSentenceId = null;
-                editSentenceBtn.style.display = 'none';
-                addSentenceBtn.style.display = 'inline-block';
-                document.querySelectorAll('#sentence-list li').forEach(li => li.classList.remove('selected-for-edit'));
-            });
-
-            // 문장 삭제
             deleteSentenceBtn.addEventListener('click', () => {
                 const sentencesToDelete = Array.from(sentenceList.querySelectorAll('input[type="checkbox"]:checked'))
                     .map(checkbox => parseInt(checkbox.closest('li').dataset.id));
@@ -394,14 +352,13 @@
                 }
             });
             
-            // --- 학습 화면 전환 및 로직 ---
             function showManagementScreen() {
                 appContainer.style.display = 'block';
                 practiceContainer.style.display = 'none';
             }
 
             function showPracticeScreen() {
-                const unmemorized = sentences.filter(s => !s.memorized); // 🚫 암기된 문장 제외
+                const unmemorized = sentences.filter(s => !s.memorized);
                 if (unmemorized.length === 0) {
                     alert("학습할 문장이 없습니다. 문장을 추가하거나 '전체 암기 초기화'를 해주세요!");
                     return;
@@ -412,7 +369,6 @@
                 loadNextRandomSentence();
             }
 
-            // 랜덤 문장 로드 및 표시
             function loadNextRandomSentence() {
                 const unmemorized = sentences.filter(s => !s.memorized);
                 
@@ -424,31 +380,26 @@
                     return;
                 }
                 
-                // 무작위로 하나 선택
                 const randomIndex = Math.floor(Math.random() * unmemorized.length);
                 currentPracticeSentence = unmemorized[randomIndex];
                 
-                // 🔴 한글 뜻 먼저 보여주기
                 practiceText.textContent = currentPracticeSentence.korean; 
                 practiceEnglish.textContent = currentPracticeSentence.text;
-                practiceEnglish.style.opacity = 0; // 영어 문장 숨김
+                practiceEnglish.style.opacity = 0;
                 practiceBox.classList.remove('revealed');
             }
 
-            // 이벤트 리스너 연결
             practiceSentenceBtn.addEventListener('click', showPracticeScreen);
             backToManageBtn.addEventListener('click', showManagementScreen);
             nextSentenceBtn.addEventListener('click', loadNextRandomSentence);
 
-            // 🔴 클릭 시 영어 문장 보여주기
             practiceBox.addEventListener('click', () => {
                 if (currentPracticeSentence) {
-                    practiceEnglish.style.opacity = 1; // 영어 문장 표시
+                    practiceEnglish.style.opacity = 1;
                     practiceBox.classList.add('revealed');
                 }
             });
 
-            // 전체 암기 초기화
             clearAllBtn.addEventListener('click', () => {
                 if (confirm("모든 문장의 암기 상태를 초기화하시겠습니까?")) {
                     sentences = sentences.map(s => ({ ...s, memorized: false }));
@@ -457,11 +408,9 @@
                 }
             });
 
-            // 프로그램 시작 시 데이터 로드 및 초기 화면 설정
             loadSentences();
             showManagementScreen();
         });
-        /* --- ⚙️ 기능 로직 (JavaScript) 끝 --- */
     </script>
 </body>
 </html>
