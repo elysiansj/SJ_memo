@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SJ 영어문장 암기 프로그램</title>
     <style>
         /* --- 🎨 스타일링 (CSS) 시작 --- */
@@ -159,22 +159,39 @@
         #practice-controls {
             display: flex;
             justify-content: space-around;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         #practice-controls button {
             padding: 10px 15px;
-            margin: 5px 0;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
             flex: 1;
-            margin: 0 5px;
+            min-width: 120px;
         }
         
-        #next-sentence-btn {
+        #back-to-manage-btn { /* 이 버튼이 상황에 따라 메인 복귀, 복습 시작 등의 역할을 함 */
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        #hold-sentence-btn {
+            background-color: #e67e22;
+            color: white;
+        }
+
+        #pass-sentence-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        #return-main-btn {
             background-color: #3498db;
             color: white;
+            display: none; /* 학습 완료 시에만 표시 */
         }
 
         /* 연습 상태 표시 스타일링 */
@@ -187,6 +204,17 @@
             padding: 5px;
             border-bottom: 2px solid #ecf0f1;
         }
+
+        #hold-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #856404;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -198,8 +226,11 @@
             <p style="color: #7f8c8d; font-size: 0.9em; margin: 0 0 10px 0;">
                 📝 <strong>사용 방법:</strong> 한 줄에 하나씩 <code>한국어 || 영어</code> 형식으로 입력하세요. 목록 문장을 **탭**하면 **수정 모드**로 전환됩니다.
             </p>
-            <textarea id="bulk-input" placeholder="예시:&#10;안녕하세요 || Hello&#10;감사합니다 || Thank you&#10;좋은 하루 되세요 || Have a nice day" 
-                      rows="5" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: Arial, sans-serif; resize: vertical;"></textarea>
+            <textarea id="bulk-input" placeholder="예시:
+안녕하세요 || Hello
+감사합니다 || Thank you
+좋은 하루 되세요 || Have a nice day" 
+                             rows="5" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: Arial, sans-serif; resize: vertical;"></textarea>
             <div id="input-buttons">
                 <button id="add-sentence-btn" class="action-btn">문장 추가/수정 완료</button>
             </div>
@@ -212,7 +243,7 @@
         </div>
 
         <div id="sentence-list-container">
-            <p id="total-sentences">총 문장 수: 0 &nbsp;|&nbsp; ✅ 암기 완료: 0/0</p> 
+            <p id="total-sentences">이 문장 수: 0 &nbsp;|&nbsp; ✅ 암기 완료: 0/0</p> 
             <ul id="sentence-list"></ul>
         </div>
     </div>
@@ -222,6 +253,7 @@
         <p>힌트(한글 뜻)를 확인 후, 박스를 클릭하여 영어 문장을 확인하세요.</p>
         
         <p id="practice-status">0/0</p>
+        <div id="hold-info" style="display: none;"></div>
         
         <div id="practice-box">
             <div id="practice-text">클릭하여 학습 시작!</div>
@@ -229,8 +261,10 @@
         </div>
         
         <div id="practice-controls">
-            <button id="back-to-manage-btn">관리 화면으로 돌아가기</button>
-            <button id="next-sentence-btn">다음 문장</button>
+            <button id="back-to-manage-btn">관리 화면으로 돌아가기</button> 
+            <button id="hold-sentence-btn">보류</button>
+            <button id="pass-sentence-btn">패스</button>
+            <button id="return-main-btn">메인 화면으로</button>
         </div>
     </div>
 
@@ -246,16 +280,39 @@
             const sentenceList = document.getElementById('sentence-list');
             const totalSentences = document.getElementById('total-sentences');
             const backToManageBtn = document.getElementById('back-to-manage-btn');
-            const nextSentenceBtn = document.getElementById('next-sentence-btn');
+            const holdSentenceBtn = document.getElementById('hold-sentence-btn');
+            const passSentenceBtn = document.getElementById('pass-sentence-btn');
+            const returnMainBtn = document.getElementById('return-main-btn'); 
             const practiceBox = document.getElementById('practice-box');
             const practiceText = document.getElementById('practice-text');
             const practiceEnglish = document.getElementById('practice-english');
-            const practiceStatus = document.getElementById('practice-status'); 
+            const practiceStatus = document.getElementById('practice-status');
+            const holdInfo = document.getElementById('hold-info');
 
             let sentences = [];
             let currentPracticeSentence = null;
-            // ⭐ 이번 세션에서 이미 본 문장의 ID 목록 (비반복 로직 핵심)
-            let reviewedSentenceIds = []; 
+            let reviewedSentenceIds = [];
+            let holdSentenceIds = []; 
+            let isReviewingHold = false; 
+
+            // 유틸리티 함수: 연습 화면 버튼 상태 설정
+            function setPracticeControls(backText, backAction, showHoldPass, showReturn) {
+                backToManageBtn.textContent = backText;
+                backToManageBtn.onclick = backAction;
+                
+                // 보류/패스 버튼은 학습이 진행 중일 때만 표시
+                holdSentenceBtn.style.display = showHoldPass ? 'block' : 'none';
+                passSentenceBtn.style.display = showHoldPass ? 'block' : 'none';
+                
+                // 메인 화면으로 버튼(returnMainBtn)은 완료 상태에서만 표시
+                returnMainBtn.style.display = showReturn ? 'block' : 'none';
+
+                // '관리 화면으로 돌아가기' 버튼의 스타일 초기화 
+                if (showHoldPass) { // 학습 중인 경우 기본 스타일
+                    backToManageBtn.style.backgroundColor = '#95a5a6';
+                    backToManageBtn.style.color = 'white';
+                }
+            }
 
             function saveSentences() {
                 localStorage.setItem('englishSentences', JSON.stringify(sentences));
@@ -295,7 +352,6 @@
                         listItem.classList.add('memorized'); 
                     }
 
-                    // 문장 탭 시 수정 모드 
                     textSpan.addEventListener('click', (e) => {
                         e.stopPropagation(); 
                         const newText = `${s.korean} || ${s.text}`;
@@ -314,21 +370,29 @@
                 updateTotalCount();
             }
             
-            // 관리 화면의 진행 상태 표시
             function updateTotalCount() {
                 const memorizedCount = sentences.filter(s => s.memorized).length;
                 const totalCount = sentences.length;
-                totalSentences.innerHTML = `총 문장 수: ${totalCount} &nbsp;|&nbsp; ✅ 암기 완료: ${memorizedCount}/${totalCount}`;
+                totalSentences.innerHTML = `이 문장 수: ${totalCount} &nbsp;|&nbsp; ✅ 암기 완료: ${memorizedCount}/${totalCount}`;
             }
 
-            // ⭐ 연습 화면의 순번/총 문장 수 표시
             function updatePracticeStatus() {
-                const totalCount = sentences.length;
+                let totalCount;
+                if (isReviewingHold) {
+                    totalCount = sentences.filter(s => holdSentenceIds.includes(s.id)).length;
+                } else {
+                    totalCount = sentences.filter(s => !s.memorized).length;
+                }
                 const currentCount = reviewedSentenceIds.length;
-                // '현재 순번 / 총 문장 수' 형식
                 practiceStatus.innerHTML = `${currentCount}/${totalCount}`;
+                
+                if (holdSentenceIds.length > 0 && !isReviewingHold) {
+                    holdInfo.style.display = 'block';
+                    holdInfo.textContent = `⏸️ 보류된 문장: ${holdSentenceIds.length}개`;
+                } else {
+                    holdInfo.style.display = 'none';
+                }
             }
-
 
             addSentenceBtn.addEventListener('click', () => {
                 const inputText = bulkInput.value.trim();
@@ -336,9 +400,6 @@
                     alert("문장을 입력해주세요.");
                     return;
                 }
-                
-                // ... (문장 추가 로직은 동일) ...
-
                 const lines = inputText.split('\n');
                 let addedCount = 0;
 
@@ -370,7 +431,7 @@
                     renderSentences();
                     alert(`${addedCount}개의 문장이 추가/수정되었습니다.`);
                 } else {
-                    alert("올바른 형식으로 입력해주세요.\n예시: 한국어 || 영어");
+                    alert("올바른 형식으로 입력된 새로운 문장이 없거나, 수정된 내용이 없습니다.\n예시: 한국어 || 영어");
                 }
             });
 
@@ -383,7 +444,6 @@
                 }
             }
 
-            // 선택 삭제 버튼 로직 (동일)
             deleteSentenceBtn.addEventListener('click', () => {
                 const sentencesToDelete = Array.from(sentenceList.querySelectorAll('input[type="checkbox"]:checked'))
                     .map(checkbox => parseInt(checkbox.closest('li').dataset.id));
@@ -403,74 +463,136 @@
             function showManagementScreen() {
                 appContainer.style.display = 'block';
                 practiceContainer.style.display = 'none';
-                // ⭐ 관리 화면으로 돌아갈 때 세션 초기화
                 reviewedSentenceIds = []; 
+                isReviewingHold = false;
                 practiceBox.classList.remove('complete');
             }
 
-            function showPracticeScreen() {
-                if (sentences.length === 0) {
-                    alert("학습할 문장이 없습니다. 문장을 추가해주세요.");
+            function showPracticeScreen(reviewHold = false) {
+                const unmemorizedSentences = sentences.filter(s => !s.memorized);
+                
+                if (!reviewHold && unmemorizedSentences.length === 0) {
+                    alert("학습할 문장이 없습니다. 모든 문장을 암기 완료했거나 문장을 추가해주세요.");
+                    return;
+                } else if (reviewHold && holdSentenceIds.length === 0) {
+                    alert("복습할 보류 문장이 없습니다.");
                     return;
                 }
 
                 appContainer.style.display = 'none';
                 practiceContainer.style.display = 'block';
-                // ⭐ 세션 시작: 이미 본 문장 목록 초기화
                 reviewedSentenceIds = []; 
-                practiceBox.classList.remove('complete'); // 완료 상태 제거
+                isReviewingHold = reviewHold;
+                
+                if (!reviewHold) {
+                    holdSentenceIds = [];
+                }
+                
+                practiceBox.classList.remove('complete');
                 loadNextRandomSentence(); 
             }
 
-            // 학습 문장 로드 (비반복 랜덤 로직)
             function loadNextRandomSentence() {
-                const totalCount = sentences.length;
+                let availableSentences;
                 
-                // ⭐ 1. 이미 다 봤는지 체크
-                if (reviewedSentenceIds.length >= totalCount) {
-                    practiceStatus.innerHTML = `${totalCount}/${totalCount}`;
-                    practiceText.innerHTML = "🎉 **학습 완료!** 모든 문장을 한 번씩 보았습니다.";
-                    practiceEnglish.textContent = "메인 화면으로 돌아가세요.";
-                    practiceEnglish.style.opacity = 1;
-                    practiceBox.classList.add('complete');
-
-                    nextSentenceBtn.style.display = 'none';
-                    backToManageBtn.textContent = '메인 화면으로 돌아가기';
-                    return;
+                if (isReviewingHold) {
+                    availableSentences = sentences.filter(s => holdSentenceIds.includes(s.id));
+                } else {
+                    availableSentences = sentences.filter(s => !s.memorized);
                 }
 
-                // 2. 아직 보지 않은 문장 필터링
-                const unreviewedSentences = sentences.filter(s => !reviewedSentenceIds.includes(s.id));
+                const totalCount = availableSentences.length;
+                
+                // 1. 이미 다 봤는지 체크 (학습 완료/복습 완료)
+                if (reviewedSentenceIds.length >= totalCount) {
+                    
+                    practiceBox.classList.add('complete');
+                    practiceEnglish.style.opacity = 1;
+
+                    if (holdSentenceIds.length > 0 && !isReviewingHold) {
+                        // 일반 학습 완료 후 보류 복습 제안
+                        practiceStatus.innerHTML = `${totalCount}/${totalCount}`;
+                        practiceText.innerHTML = `🎉 한 텀 완료!<br>보류된 문장 ${holdSentenceIds.length}개를 복습하시겠습니까?`;
+                        practiceEnglish.textContent = "보류 문장만 다시 학습합니다";
+
+                        // 버튼: '보류 문장 복습' (backToManageBtn) + '메인 화면으로' (returnMainBtn)
+                        setPracticeControls('보류 문장 복습', () => {
+                            showPracticeScreen(true);
+                        }, false, true); // 보류/패스 숨김, 메인 버튼 표시
+                        backToManageBtn.style.backgroundColor = '#e67e22'; 
+                        return;
+
+                    } else if (isReviewingHold && holdSentenceIds.length > 0) {
+                        // 보류 복습 중인데 아직 보류가 남아있음 -> 반복 학습 제안
+                        practiceStatus.innerHTML = `${totalCount}/${totalCount}`;
+                        practiceText.innerHTML = `⏸️ 보류된 문장이 ${holdSentenceIds.length}개 남았습니다<br>계속 복습하시겠습니까?`;
+                        practiceEnglish.textContent = "패스될 때까지 반복 학습합니다";
+                        
+                        // 버튼: '보류 문장 계속 복습' (backToManageBtn) + '메인 화면으로' (returnMainBtn)
+                        setPracticeControls('보류 문장 계속 복습', () => {
+                            showPracticeScreen(true);
+                        }, false, true); // 보류/패스 숨김, 메인 버튼 표시
+                        backToManageBtn.style.backgroundColor = '#e67e22';
+                        return;
+
+                    } else {
+                        // 모든 학습 완료 (보류까지 모두 해소됨)
+                        practiceStatus.innerHTML = `${totalCount}/${totalCount}`;
+                        practiceText.innerHTML = "🎉 **학습 완료!** 모든 문장을 학습했습니다.";
+                        practiceEnglish.textContent = "수고하셨습니다!";
+
+                        // 버튼: '메인 화면으로 돌아가기' (backToManageBtn)
+                        setPracticeControls('메인 화면으로 돌아가기', showManagementScreen, false, false); 
+                        return;
+                    }
+                }
+
+                // 2. 다음 학습 문장 로드 (학습/복습 진행 중)
+                const unreviewedSentences = availableSentences.filter(s => !reviewedSentenceIds.includes(s.id));
                 
                 if (unreviewedSentences.length === 0) {
-                    // 이론적으로 위에 reviewedSentenceIds.length 체크와 동일해야 하지만, 혹시 모를 상황 대비
                     return; 
                 }
 
-                // 3. 필터링된 문장 중 랜덤으로 선택
                 const randomIndex = Math.floor(Math.random() * unreviewedSentences.length);
                 currentPracticeSentence = unreviewedSentences[randomIndex];
                 
-                // 4. 본 문장 목록에 ID 추가
                 reviewedSentenceIds.push(currentPracticeSentence.id);
 
-                // 5. 화면 업데이트
+                // 화면 업데이트
                 practiceText.textContent = currentPracticeSentence.korean; 
                 practiceEnglish.textContent = currentPracticeSentence.text;
                 practiceEnglish.style.opacity = 0;
                 practiceBox.classList.remove('revealed');
                 practiceBox.classList.remove('complete');
-                nextSentenceBtn.style.display = 'block';
-                backToManageBtn.textContent = '관리 화면으로 돌아가기';
                 
-                updatePracticeStatus(); // ⭐ 순번/총 문장 수 업데이트
+                // 버튼: '관리 화면으로 돌아가기' (backToManageBtn) + '보류' + '패스'
+                setPracticeControls('관리 화면으로 돌아가기', showManagementScreen, true, false); 
+                
+                updatePracticeStatus();
             }
+
+            // 보류 버튼 클릭
+            holdSentenceBtn.addEventListener('click', () => {
+                if (currentPracticeSentence && !holdSentenceIds.includes(currentPracticeSentence.id)) {
+                    holdSentenceIds.push(currentPracticeSentence.id);
+                }
+                loadNextRandomSentence();
+            });
+
+            // 패스 버튼 클릭
+            passSentenceBtn.addEventListener('click', () => {
+                if (isReviewingHold && currentPracticeSentence) {
+                    holdSentenceIds = holdSentenceIds.filter(id => id !== currentPracticeSentence.id);
+                }
+                loadNextRandomSentence();
+            });
+
+            practiceSentenceBtn.addEventListener('click', () => showPracticeScreen(false));
             
-
-            practiceSentenceBtn.addEventListener('click', showPracticeScreen);
-            backToManageBtn.addEventListener('click', showManagementScreen);
-            nextSentenceBtn.addEventListener('click', loadNextRandomSentence);
-
+            // returnMainBtn: 학습 완료 메시지 상태에서 '메인 화면으로' 버튼 역할
+            returnMainBtn.addEventListener('click', showManagementScreen);
+            
             practiceBox.addEventListener('click', () => {
                 if (currentPracticeSentence) {
                     practiceEnglish.style.opacity = 1;
