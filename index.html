@@ -14,7 +14,8 @@
         }
 
         #app-container, #practice-container {
-            max-width: 650px;
+            /* 데스크톱 화면 크기 확장 (650px -> 1000px) */
+            max-width: 1000px;
             width: 100%;
             margin: 0 auto;
             background: #fff;
@@ -80,6 +81,7 @@
         }
 
         .action-btn.delete { background-color: #e74c3c; }
+        .action-btn.delete-all { background-color: #e67e22; }
         .action-btn.practice { background-color: #3498db; }
         .action-btn.clear { background-color: #f1c40f; color: #333; }
 
@@ -173,7 +175,7 @@
             min-width: 120px;
         }
         
-        #back-to-manage-btn { /* 이 버튼이 상황에 따라 메인 복귀, 복습 시작 등의 역할을 함 */
+        #back-to-manage-btn {
             background-color: #95a5a6;
             color: white;
         }
@@ -191,7 +193,7 @@
         #return-main-btn {
             background-color: #3498db;
             color: white;
-            display: none; /* 학습 완료 시에만 표시 */
+            display: none;
         }
 
         /* 연습 상태 표시 스타일링 */
@@ -238,6 +240,7 @@
 
         <div id="action-buttons">
             <button id="delete-sentence-btn" class="action-btn delete">선택 삭제</button>
+            <button id="delete-all-btn" class="action-btn delete-all">전체 삭제</button>
             <button id="practice-sentence-btn" class="action-btn practice">학습 시작</button>
             <button id="clear-all-btn" class="action-btn clear">암기 초기화</button>
         </div>
@@ -275,6 +278,7 @@
             const bulkInput = document.getElementById('bulk-input');
             const addSentenceBtn = document.getElementById('add-sentence-btn');
             const deleteSentenceBtn = document.getElementById('delete-sentence-btn');
+            const deleteAllBtn = document.getElementById('delete-all-btn');
             const practiceSentenceBtn = document.getElementById('practice-sentence-btn');
             const clearAllBtn = document.getElementById('clear-all-btn');
             const sentenceList = document.getElementById('sentence-list');
@@ -460,6 +464,20 @@
                 }
             });
             
+            deleteAllBtn.addEventListener('click', () => {
+                if (sentences.length === 0) {
+                    alert("삭제할 문장이 없습니다.");
+                    return;
+                }
+                
+                if (confirm(`모든 문장(${sentences.length}개)을 정말로 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다!`)) {
+                    sentences = [];
+                    saveSentences();
+                    renderSentences();
+                    alert("모든 문장이 삭제되었습니다.");
+                }
+            });
+            
             function showManagementScreen() {
                 appContainer.style.display = 'block';
                 practiceContainer.style.display = 'none';
@@ -512,7 +530,7 @@
                     if (holdSentenceIds.length > 0 && !isReviewingHold) {
                         // 일반 학습 완료 후 보류 복습 제안
                         practiceStatus.innerHTML = `${totalCount}/${totalCount}`;
-                        practiceText.innerHTML = `🎉 한 텀 완료!<br>보류된 문장 ${holdSentenceIds.length}개를 복습하시겠습니까?`;
+                        practiceText.innerHTML = `🎉 한 턴 완료!<br>보류된 문장 ${holdSentenceIds.length}개를 복습하시겠습니까?`;
                         practiceEnglish.textContent = "보류 문장만 다시 학습합니다";
 
                         // 버튼: '보류 문장 복습' (backToManageBtn) + '메인 화면으로' (returnMainBtn)
